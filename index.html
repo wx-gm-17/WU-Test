@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Cannoli Pro v25 (Official Specs)</title>
+<title>Cannoli Pro v26</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 :root { --bg: #060d14; --card: rgba(18, 32, 47, 0.95); --accent: #00d2ff; --border: rgba(255, 255, 255, 0.15); --text: #fff; }
@@ -12,16 +12,21 @@ header { background: #0b141d; padding: 20px; border-bottom: 2px solid var(--bord
 .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 25px; }
 .card { background: var(--card); padding: 40px 20px; border-radius: 28px; border: 1px solid var(--border); }
 .main-val { font-size: 70px; font-weight: 900; margin: 10px 0; }
-#status { background: #ff4d4d; color: white; padding: 10px; display: none; font-size: 13px; font-weight: 700; }
+#status { background: #ff4d4d; color: white; padding: 15px; display: none; font-size: 13px; line-height: 1.5; }
+.btn { background: var(--accent); color: #000; border: none; padding: 10px 15px; border-radius: 8px; font-weight: 900; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 10px; }
 </style>
 </head>
 <body>
 
 <header>
-  <div style="font-weight: 900; font-size: 20px;">🐾 CANNOLI v25</div>
+  <div style="font-weight: 900; font-size: 20px;">🐾 CANNOLI v26</div>
   <input type="date" id="targetDate" onchange="fetchData(this.value)" style="background:#14212d; color:white; border:1px solid var(--border); padding:8px; border-radius:10px;">
 </header>
-<div id="status"></div>
+
+<div id="status">
+    <div id="status-text"></div>
+    <a id="debug-link" class="btn" target="_blank">View Raw Data Link</a>
+</div>
 
 <div class="dashboard">
   <div class="card"><div>TEMP</div><div id="v-temp" class="main-val">--</div></div>
@@ -34,39 +39,41 @@ const wuKey = "0b649979d0b348b1a49979d0b318b138";
 const stationId = "KCOARVAD722";
 
 async function fetchData(selectedDate) {
-    const status = document.getElementById('status');
-    status.style.display = 'none';
+    const statusDiv = document.getElementById('status');
+    const statusText = document.getElementById('status-text');
+    const debugLink = document.getElementById('debug-link');
+    statusDiv.style.display = 'none';
 
-    // Official Spec Date Formatting (YYYYMMDD)
     let d = selectedDate ? new Date(selectedDate + "T12:00:00") : new Date();
-    // Documentation suggests using previous dates for this specific API
     const dateStr = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
 
-    // Added numericPrecision=decimal per official documentation
     const targetUrl = `https://api.weather.com/v2/pws/history/all?stationId=${stationId}&format=json&units=e&date=${dateStr}&apiKey=${wuKey}&numericPrecision=decimal`;
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    
+    // Updated Proxy: Using ThingProxy (different infrastructure)
+    const proxyUrl = `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(targetUrl)}`;
+    debugLink.href = targetUrl;
 
     try {
         const response = await fetch(proxyUrl);
-        const data = await response.json();
-        const json = JSON.parse(data.contents);
+        if (!response.ok) throw new Error("The proxy server is being blocked by Weather Underground.");
         
-        if (!json.observations) throw new Error("Data not ready. Try a previous date.");
+        const json = await response.json();
+        
+        if (!json.observations) throw new Error("Station found, but no data exists for this date.");
 
         const latest = json.observations[json.observations.length - 1];
-        const imp = latest.imperial;
-        
-        document.getElementById('v-temp').innerText = Math.round(imp.tempAvg) + "°";
-        document.getElementById('v-wind').innerText = Math.round(imp.windspeedAvg);
-        document.getElementById('v-rain').innerText = imp.precipTotal.toFixed(2);
+        document.getElementById('v-temp').innerText = Math.round(latest.imperial.tempAvg) + "°";
+        document.getElementById('v-wind').innerText = Math.round(latest.imperial.windspeedAvg);
+        document.getElementById('v-rain').innerText = latest.imperial.precipTotal.toFixed(2);
         
     } catch (e) {
-        status.innerText = e.message;
-        status.style.display = 'block';
+        statusText.innerHTML = "<b>Connection Blocked:</b> Weather Underground's security is fighting the proxy. <br>Click the button below to see if your API key works directly:";
+        statusDiv.style.display = 'block';
+        console.error("Fetch Error:", e);
     }
 }
 
-// Initial Load (Default to yesterday to ensure data is "Historical" per documentation)
+// Default to yesterday to stay within "Historical" API limits
 const yesterday = new Date();
 yesterday.setDate(yesterday.getDate() - 1);
 const dateInput = yesterday.toISOString().split('T')[0];
