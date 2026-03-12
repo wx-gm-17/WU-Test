@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Cannoli Pro v24 (IBM Fix)</title>
+<title>Cannoli Pro v25 (Official Specs)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 :root { --bg: #060d14; --card: rgba(18, 32, 47, 0.95); --accent: #00d2ff; --border: rgba(255, 255, 255, 0.15); --text: #fff; }
@@ -11,7 +11,6 @@ body { margin:0; background: var(--bg); color: var(--text); font-family: 'Inter'
 header { background: #0b141d; padding: 20px; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
 .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 25px; }
 .card { background: var(--card); padding: 40px 20px; border-radius: 28px; border: 1px solid var(--border); }
-.label { color: #8899a6; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; }
 .main-val { font-size: 70px; font-weight: 900; margin: 10px 0; }
 #status { background: #ff4d4d; color: white; padding: 10px; display: none; font-size: 13px; font-weight: 700; }
 </style>
@@ -19,24 +18,15 @@ header { background: #0b141d; padding: 20px; border-bottom: 2px solid var(--bord
 <body>
 
 <header>
-  <div style="font-weight: 900; font-size: 20px;">🐾 CANNOLI v24</div>
+  <div style="font-weight: 900; font-size: 20px;">🐾 CANNOLI v25</div>
   <input type="date" id="targetDate" onchange="fetchData(this.value)" style="background:#14212d; color:white; border:1px solid var(--border); padding:8px; border-radius:10px;">
 </header>
 <div id="status"></div>
 
 <div class="dashboard">
-  <div class="card">
-    <div class="label">Temperature</div>
-    <div id="v-temp" class="main-val">--</div>
-  </div>
-  <div class="card">
-    <div class="label">Wind Speed</div>
-    <div id="v-wind" class="main-val">--</div>
-  </div>
-  <div class="card">
-    <div class="label">Precipitation</div>
-    <div id="v-rain" class="main-val">--</div>
-  </div>
+  <div class="card"><div>TEMP</div><div id="v-temp" class="main-val">--</div></div>
+  <div class="card"><div>WIND</div><div id="v-wind" class="main-val">--</div></div>
+  <div class="card"><div>RAIN</div><div id="v-rain" class="main-val">--</div></div>
 </div>
 
 <script>
@@ -47,48 +37,41 @@ async function fetchData(selectedDate) {
     const status = document.getElementById('status');
     status.style.display = 'none';
 
-    // 1. Fix the Date (IBM/WU is picky about timezones)
+    // Official Spec Date Formatting (YYYYMMDD)
     let d = selectedDate ? new Date(selectedDate + "T12:00:00") : new Date();
-    // Safety check: Don't allow future dates
-    if (d > new Date()) d = new Date(); 
-    
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${yyyy}${mm}${dd}`;
+    // Documentation suggests using previous dates for this specific API
+    const dateStr = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
 
-    const targetUrl = `https://api.weather.com/v2/pws/history/all/1day?stationId=${stationId}&format=json&units=e&date=${dateStr}&apiKey=${wuKey}`;
-    
-    // 2. Switch Proxy to AllOrigins (less likely to trigger 403)
+    // Added numericPrecision=decimal per official documentation
+    const targetUrl = `https://api.weather.com/v2/pws/history/all?stationId=${stationId}&format=json&units=e&date=${dateStr}&apiKey=${wuKey}&numericPrecision=decimal`;
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
     try {
         const response = await fetch(proxyUrl);
         const data = await response.json();
-        
-        // AllOrigins wraps the result in a "contents" string
         const json = JSON.parse(data.contents);
         
-        if (!json.observations || json.observations.length === 0) {
-            throw new Error("No data recorded for this date.");
-        }
+        if (!json.observations) throw new Error("Data not ready. Try a previous date.");
 
-        const latest = json.observations[json.observations.length - 1].imperial;
-        document.getElementById('v-temp').innerText = Math.round(latest.tempAvg) + "°";
-        document.getElementById('v-wind').innerText = Math.round(latest.windspeedAvg);
-        document.getElementById('v-rain').innerText = latest.precipTotal.toFixed(2);
+        const latest = json.observations[json.observations.length - 1];
+        const imp = latest.imperial;
+        
+        document.getElementById('v-temp').innerText = Math.round(imp.tempAvg) + "°";
+        document.getElementById('v-wind').innerText = Math.round(imp.windspeedAvg);
+        document.getElementById('v-rain').innerText = imp.precipTotal.toFixed(2);
         
     } catch (e) {
-        status.innerText = "ERROR: " + e.message;
+        status.innerText = e.message;
         status.style.display = 'block';
-        console.error("Full Error:", e);
     }
 }
 
-// Set initial date to today
-const today = new Date().toISOString().split('T')[0];
-document.getElementById('targetDate').value = today;
-fetchData(today);
+// Initial Load (Default to yesterday to ensure data is "Historical" per documentation)
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+const dateInput = yesterday.toISOString().split('T')[0];
+document.getElementById('targetDate').value = dateInput;
+fetchData(dateInput);
 </script>
 </body>
 </html>
