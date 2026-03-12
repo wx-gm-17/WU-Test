@@ -3,118 +3,92 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0b141d">
-<title>Cannoli Pro v22</title>
-
+<title>Cannoli Pro v24 (IBM Fix)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>
-
 <style>
 :root { --bg: #060d14; --card: rgba(18, 32, 47, 0.95); --accent: #00d2ff; --border: rgba(255, 255, 255, 0.15); --text: #fff; }
-body { margin:0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow-x: hidden; }
-header { background: #0b141d; padding: 20px; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; }
-.header-wrap { display: flex; justify-content: space-between; align-items: center; }
-.status-msg { font-size: 12px; color: #ff4d4d; padding: 10px; background: rgba(255,0,0,0.1); display: none; text-align: center; border-bottom: 1px solid rgba(255,0,0,0.2); }
-.dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
-.card { background: var(--card); padding: 35px 20px; border-radius: 24px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-.label { color: #8899a6; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
-.main-val { font-size: 64px; font-weight: 900; line-height: 1; margin: 15px 0; }
-.sub-val { font-size: 16px; color: var(--accent); font-weight: 700; }
-.footer-info { padding: 20px; text-align: center; color: #445566; font-size: 12px; font-weight: 700; }
+body { margin:0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; text-align: center; }
+header { background: #0b141d; padding: 20px; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 25px; }
+.card { background: var(--card); padding: 40px 20px; border-radius: 28px; border: 1px solid var(--border); }
+.label { color: #8899a6; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; }
+.main-val { font-size: 70px; font-weight: 900; margin: 10px 0; }
+#status { background: #ff4d4d; color: white; padding: 10px; display: none; font-size: 13px; font-weight: 700; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-wrap">
-    <div>
-        <div style="font-weight: 900; font-size: 22px; letter-spacing: -0.5px;">🐾 CANNOLI PRO <span style="color:var(--accent)">v22</span></div>
-        <div id="update-time" style="font-size:11px; color:#8899a6; margin-top:4px; font-weight:700;">STATION: KCOARVAD722</div>
-    </div>
-    <input type="date" id="targetDate" onchange="loadNewDate()" style="background:#14212d; color:white; border:1px solid var(--border); padding:8px; border-radius:10px; font-weight:700;">
-  </div>
+  <div style="font-weight: 900; font-size: 20px;">🐾 CANNOLI v24</div>
+  <input type="date" id="targetDate" onchange="fetchData(this.value)" style="background:#14212d; color:white; border:1px solid var(--border); padding:8px; border-radius:10px;">
 </header>
-<div id="status" class="status-msg"></div>
+<div id="status"></div>
 
 <div class="dashboard">
   <div class="card">
     <div class="label">Temperature</div>
     <div id="v-temp" class="main-val">--</div>
-    <div id="v-dew" class="sub-val">--</div>
   </div>
   <div class="card">
-    <div class="label">Wind / Gust</div>
+    <div class="label">Wind Speed</div>
     <div id="v-wind" class="main-val">--</div>
-    <div id="v-gust" class="sub-val">--</div>
-  </div>
-  <div class="card">
-    <div class="label">Solar Radiation</div>
-    <div id="v-sol" class="main-val">--</div>
-    <div id="v-uv" class="sub-val">--</div>
   </div>
   <div class="card">
     <div class="label">Precipitation</div>
     <div id="v-rain" class="main-val">--</div>
-    <div class="sub-val">TOTAL INCHES</div>
   </div>
 </div>
-
-<div class="footer-info">KCOARVAD722 • Arvada, CO • Weather Underground PWS Network</div>
 
 <script>
 const wuKey = "0b649979d0b348b1a49979d0b318b138";
 const stationId = "KCOARVAD722";
-let historyData = [];
 
-async function fetchData(dateStr = null) {
-  const status = document.getElementById('status');
-  status.style.display = 'none';
-  const dateParam = dateStr ? dateStr.replace(/-/g, '') : new Date().toISOString().slice(0,10).replace(/-/g, '');
-  
-  const targetUrl = `https://api.weather.com/v2/pws/history/all/1day?stationId=${stationId}&format=json&units=e&date=${dateParam}&apiKey=${wuKey}`;
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+async function fetchData(selectedDate) {
+    const status = document.getElementById('status');
+    status.style.display = 'none';
 
-  try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error('CORS or API Error');
-    const json = await response.json();
+    // 1. Fix the Date (IBM/WU is picky about timezones)
+    let d = selectedDate ? new Date(selectedDate + "T12:00:00") : new Date();
+    // Safety check: Don't allow future dates
+    if (d > new Date()) d = new Date(); 
     
-    historyData = json.observations || [];
-    if(historyData.length > 0) {
-        updateUI();
-    } else {
-        status.innerText = "No data found for " + dateParam + ". Check station status.";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}${mm}${dd}`;
+
+    const targetUrl = `https://api.weather.com/v2/pws/history/all/1day?stationId=${stationId}&format=json&units=e&date=${dateStr}&apiKey=${wuKey}`;
+    
+    // 2. Switch Proxy to AllOrigins (less likely to trigger 403)
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+    try {
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        
+        // AllOrigins wraps the result in a "contents" string
+        const json = JSON.parse(data.contents);
+        
+        if (!json.observations || json.observations.length === 0) {
+            throw new Error("No data recorded for this date.");
+        }
+
+        const latest = json.observations[json.observations.length - 1].imperial;
+        document.getElementById('v-temp').innerText = Math.round(latest.tempAvg) + "°";
+        document.getElementById('v-wind').innerText = Math.round(latest.windspeedAvg);
+        document.getElementById('v-rain').innerText = latest.precipTotal.toFixed(2);
+        
+    } catch (e) {
+        status.innerText = "ERROR: " + e.message;
         status.style.display = 'block';
+        console.error("Full Error:", e);
     }
-  } catch(e) { 
-    status.innerText = "CONNECTION BLOCKED. Ensure you are viewing via GitHub HTTPS.";
-    status.style.display = 'block';
-    console.error("CORS Error Help:", e);
-  }
 }
 
-function updateUI() {
-  const latest = historyData[historyData.length - 1];
-  const imp = latest.imperial;
-  document.getElementById('v-temp').innerText = Math.round(imp.tempAvg) + "°";
-  document.getElementById('v-dew').innerText = "Dew Point: " + Math.round(imp.dewptAvg) + "°";
-  document.getElementById('v-wind').innerText = Math.round(imp.windspeedAvg);
-  document.getElementById('v-gust').innerText = "Gust: " + Math.round(imp.windgustHigh) + " MPH";
-  document.getElementById('v-sol').innerText = Math.round(latest.solarRadiationHigh || 0);
-  document.getElementById('v-uv').innerText = "UV: " + (latest.uvHigh || 0);
-  document.getElementById('v-rain').innerText = imp.precipTotal.toFixed(2);
-  
-  const obsTime = new Date(latest.obsTimeLocal);
-  document.getElementById('update-time').innerText = "LAST UPDATE: " + obsTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-}
-
-function loadNewDate() { fetchData(document.getElementById('targetDate').value); }
-document.getElementById('targetDate').valueAsDate = new Date();
-fetchData();
+// Set initial date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('targetDate').value = today;
+fetchData(today);
 </script>
 </body>
 </html>
