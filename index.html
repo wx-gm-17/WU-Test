@@ -3,210 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0b141d">
-<title>Cannoli Pro v20 (GitHub Edition)</title>
+<title>Cannoli Pro v22</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>
 
 <style>
 :root { --bg: #060d14; --card: rgba(18, 32, 47, 0.95); --accent: #00d2ff; --border: rgba(255, 255, 255, 0.15); --text: #fff; }
-body { margin:0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-header { background: #0b141d; padding: 20px; border-bottom: 2px solid var(--border); }
-.header-top { display: flex; justify-content: space-between; align-items: center; }
-.last-updated { font-size: 11px; color: #8899a6; font-weight: 700; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
-.date-selector { margin-top: 15px; display: flex; gap: 10px; align-items: center; background: #14212d; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); width: fit-content; }
-input[type="date"] { background: transparent; color: white; border: none; font-family: inherit; font-size: 15px; outline: none; color-scheme: dark; }
-
-.dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 25px; }
-.card { background: var(--card); padding: 40px 20px; border-radius: 28px; text-align: center; border: 2px solid var(--border); cursor: pointer; transition: transform 0.2s; }
-.card:active { transform: scale(0.98); }
-.label { font-size: 14px; text-transform: uppercase; color: #8899a6; font-weight: 900; letter-spacing: 2px; }
-.main-val { font-size: 70px; font-weight: 900; margin: 10px 0; line-height: 1; }
-.sub-val { font-size: 18px; color: var(--accent); font-weight: 700; }
-
-.summary-container { margin: 0 25px 40px 25px; background: #0b141d; border-radius: 20px; border: 2px solid var(--border); overflow: hidden; }
-table { width: 100%; border-collapse: collapse; }
-th { background: #14212d; color: var(--accent); padding: 15px; text-align: left; font-size: 13px; text-transform: uppercase; }
-td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 600; }
-
-.btn { background: var(--accent); border: none; padding: 10px 18px; border-radius: 10px; font-weight: 900; cursor: pointer; color: #000; }
-.overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: var(--bg); z-index: 1000; flex-direction:column; }
-.toolbar { display:flex; padding:15px; background: #0b141d; border-bottom: 2px solid var(--border); align-items: center; gap: 10px; }
-.chart-box { height: 50vh; background: #000; padding: 10px; touch-action: none; }
+body { margin:0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+header { background: #0b141d; padding: 20px; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; }
+.header-wrap { display: flex; justify-content: space-between; align-items: center; }
+.status-msg { font-size: 12px; color: #ff4d4d; padding: 10px; background: rgba(255,0,0,0.1); display: none; text-align: center; border-bottom: 1px solid rgba(255,0,0,0.2); }
+.dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
+.card { background: var(--card); padding: 35px 20px; border-radius: 24px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.label { color: #8899a6; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+.main-val { font-size: 64px; font-weight: 900; line-height: 1; margin: 15px 0; }
+.sub-val { font-size: 16px; color: var(--accent); font-weight: 700; }
+.footer-info { padding: 20px; text-align: center; color: #445566; font-size: 12px; font-weight: 700; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-top">
+  <div class="header-wrap">
     <div>
-        <div style="font-weight: 900; font-size: 20px;">🐾 CANNOLI PRO v20</div>
-        <div id="update-time" class="last-updated">Waiting for data...</div>
+        <div style="font-weight: 900; font-size: 22px; letter-spacing: -0.5px;">🐾 CANNOLI PRO <span style="color:var(--accent)">v22</span></div>
+        <div id="update-time" style="font-size:11px; color:#8899a6; margin-top:4px; font-weight:700;">STATION: KCOARVAD722</div>
     </div>
-    <button class="btn" onclick="openMaster()">LOG</button>
-  </div>
-  <div class="date-selector">
-    <input type="date" id="targetDate" onchange="loadNewDate()">
+    <input type="date" id="targetDate" onchange="loadNewDate()" style="background:#14212d; color:white; border:1px solid var(--border); padding:8px; border-radius:10px; font-weight:700;">
   </div>
 </header>
+<div id="status" class="status-msg"></div>
 
 <div class="dashboard">
-  <div class="card" onclick="openChart('temp')">
+  <div class="card">
     <div class="label">Temperature</div>
     <div id="v-temp" class="main-val">--</div>
-    <div id="v-feels" class="sub-val" style="color: #ffaa00;">Apparent: --</div>
-    <div id="v-dew" class="sub-val" style="font-size: 14px; opacity: 0.8; margin-top: 8px;">Dew Point: --</div>
+    <div id="v-dew" class="sub-val">--</div>
   </div>
-  
-  <div class="card" onclick="openChart('wind')">
-    <div class="label">Wind & Gusts</div>
+  <div class="card">
+    <div class="label">Wind / Gust</div>
     <div id="v-wind" class="main-val">--</div>
-    <div id="v-gust" class="sub-val">Gusting: --</div>
+    <div id="v-gust" class="sub-val">--</div>
   </div>
-
-  <div class="card" onclick="openChart('solar')">
-    <div class="label">Solar & UV</div>
+  <div class="card">
+    <div class="label">Solar Radiation</div>
     <div id="v-sol" class="main-val">--</div>
-    <div id="v-uv" class="sub-val">UV Index: --</div>
+    <div id="v-uv" class="sub-val">--</div>
   </div>
-
-  <div class="card" onclick="openChart('rain')">
-    <div class="label">Daily Rain</div>
+  <div class="card">
+    <div class="label">Precipitation</div>
     <div id="v-rain" class="main-val">--</div>
     <div class="sub-val">TOTAL INCHES</div>
   </div>
 </div>
 
-<div class="summary-container">
-  <table>
-    <thead><tr><th>24H Analysis</th><th>High</th><th>Low</th><th>Average</th></tr></thead>
-    <tbody id="summary-body"></tbody>
-  </table>
-</div>
-
-<div id="overlay-chart" class="overlay">
-  <div class="toolbar">
-    <h3 id="chart-title" style="flex:1; margin:0; font-size:16px;">ANALYSIS</h3>
-    <button class="btn" style="background:#333; color:white;" onclick="resetChartZoom()">RESET</button>
-    <button class="btn" onclick="closeOverlay('overlay-chart')">✕</button>
-  </div>
-  <div class="content"><div class="chart-box"><canvas id="main-canvas"></canvas></div></div>
-</div>
-
-<div id="overlay-master" class="overlay">
-  <div class="toolbar"><h3 style="flex:1; margin:0;">MASTER LOG</h3><button class="btn" onclick="closeOverlay('overlay-master')">CLOSE</button></div>
-  <div class="content" style="padding: 10px; overflow-y:auto;">
-    <table style="background:#0b141d; border-radius:12px; font-size:13px;">
-        <thead><tr><th>Time</th><th>Temp</th><th>Dew</th><th>Wind</th><th>Gust</th></tr></thead>
-        <tbody id="master-body"></tbody>
-    </table>
-  </div>
-</div>
+<div class="footer-info">KCOARVAD722 • Arvada, CO • Weather Underground PWS Network</div>
 
 <script>
 const wuKey = "0b649979d0b348b1a49979d0b318b138";
 const stationId = "KCOARVAD722";
-let historyData = [], chartInstance = null;
+let historyData = [];
 
 async function fetchData(dateStr = null) {
+  const status = document.getElementById('status');
+  status.style.display = 'none';
   const dateParam = dateStr ? dateStr.replace(/-/g, '') : new Date().toISOString().slice(0,10).replace(/-/g, '');
-  // Secure HTTPS fetch for GitHub Pages
-  const url = `https://api.weather.com/v2/pws/history/all/1day?stationId=${stationId}&format=json&units=e&date=${dateParam}&apiKey=${wuKey}`;
   
+  const targetUrl = `https://api.weather.com/v2/pws/history/all/1day?stationId=${stationId}&format=json&units=e&date=${dateParam}&apiKey=${wuKey}`;
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
   try {
-    const r = await fetch(url);
-    const json = await r.json();
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error('CORS or API Error');
+    const json = await response.json();
+    
     historyData = json.observations || [];
     if(historyData.length > 0) {
         updateUI();
-        buildSummary();
+    } else {
+        status.innerText = "No data found for " + dateParam + ". Check station status.";
+        status.style.display = 'block';
     }
-  } catch(e) { console.error("WU Fetch Error:", e); }
+  } catch(e) { 
+    status.innerText = "CONNECTION BLOCKED. Ensure you are viewing via GitHub HTTPS.";
+    status.style.display = 'block';
+    console.error("CORS Error Help:", e);
+  }
 }
 
 function updateUI() {
   const latest = historyData[historyData.length - 1];
   const imp = latest.imperial;
-  
   document.getElementById('v-temp').innerText = Math.round(imp.tempAvg) + "°";
-  document.getElementById('v-feels').innerText = "Apparent: " + Math.round(imp.heatindexHigh || imp.tempAvg) + "°";
   document.getElementById('v-dew').innerText = "Dew Point: " + Math.round(imp.dewptAvg) + "°";
   document.getElementById('v-wind').innerText = Math.round(imp.windspeedAvg);
-  document.getElementById('v-gust').innerText = "Gusting: " + Math.round(imp.windgustHigh) + " MPH";
+  document.getElementById('v-gust').innerText = "Gust: " + Math.round(imp.windgustHigh) + " MPH";
   document.getElementById('v-sol').innerText = Math.round(latest.solarRadiationHigh || 0);
-  document.getElementById('v-uv').innerText = "UV Index: " + (latest.uvHigh || 0);
+  document.getElementById('v-uv').innerText = "UV: " + (latest.uvHigh || 0);
   document.getElementById('v-rain').innerText = imp.precipTotal.toFixed(2);
   
-  // Update timestamp
   const obsTime = new Date(latest.obsTimeLocal);
-  document.getElementById('update-time').innerText = "Last Update: " + obsTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-}
-
-function buildSummary() {
-    const params = [
-        { n: 'Temperature', k: 'tempAvg', u: '°' },
-        { n: 'Wind Speed', k: 'windspeedAvg', u: ' mph' },
-        { n: 'Wind Gust', k: 'windgustHigh', u: ' mph' },
-        { n: 'Humidity', k: 'humidityAvg', u: '%' }
-    ];
-    document.getElementById('summary-body').innerHTML = params.map(p => {
-        const vals = historyData.map(d => d.imperial[p.k] || d[p.k] || 0);
-        const high = Math.max(...vals), low = Math.min(...vals), avg = vals.reduce((a,b)=>a+b)/vals.length;
-        return `<tr><td>${p.n}</td><td>${Math.round(high)}${p.u}</td><td>${Math.round(low)}${p.u}</td><td>${Math.round(avg)}${p.u}</td></tr>`;
-    }).join('');
-}
-
-function openChart(type) {
-  document.getElementById('overlay-chart').style.display = 'flex';
-  const ctx = document.getElementById('main-canvas');
-  if(chartInstance) chartInstance.destroy();
-
-  const labels = historyData.map(d => new Date(d.obsTimeLocal));
-  let datasets = [];
-  const map = { temp: 'tempAvg', wind: 'windspeedAvg', solar: 'solarRadiationHigh', rain: 'precipTotal' };
-
-  datasets.push({
-    label: type.toUpperCase(),
-    data: historyData.map(d => d.imperial[map[type]] || d[map[type]]),
-    borderColor: '#00d2ff', fill: true, backgroundColor: 'rgba(0,210,255,0.05)', pointRadius: 0, tension: 0.2
-  });
-
-  if(type === 'temp') datasets.push({ label: 'DEW', data: historyData.map(d => d.imperial.dewptAvg), borderColor: '#00ffaa', borderDash: [5,5], pointRadius: 0 });
-  if(type === 'wind') datasets.push({ label: 'GUST', data: historyData.map(d => d.imperial.windgustHigh), borderColor: '#ff4d4d', pointRadius: 0 });
-
-  chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        zoom: { pan: { enabled: true, mode: 'x' }, zoom: { pinch: { enabled: true }, wheel: { enabled: true }, mode: 'x' } },
-        annotation: { annotations: (type === 'temp') ? { line1: { type: 'line', yMin: 32, yMax: 32, borderColor: 'rgba(255, 255, 255, 0.4)', borderWidth: 2, borderDash: [6, 6] } } : {} }
-      },
-      scales: { x: { type: 'time', time: { unit: 'hour' }, ticks: { color: '#8899a6' } }, y: { ticks: { color: '#8899a6' } } }
-    }
-  });
-}
-
-function openMaster() {
-  document.getElementById('overlay-master').style.display = 'flex';
-  document.getElementById('master-body').innerHTML = historyData.slice().reverse().map(d => `
-    <tr><td>${d.obsTimeLocal.split(' ')[1]}</td><td>${Math.round(d.imperial.tempAvg)}°</td><td>${Math.round(d.imperial.dewptAvg)}°</td><td>${Math.round(d.imperial.windspeedAvg)}</td><td>${Math.round(d.imperial.windgustHigh)}</td></tr>
-  `).join('');
+  document.getElementById('update-time').innerText = "LAST UPDATE: " + obsTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 
 function loadNewDate() { fetchData(document.getElementById('targetDate').value); }
-function closeOverlay(id) { document.getElementById(id).style.display = 'none'; }
-function resetChartZoom() { if(chartInstance) chartInstance.resetZoom(); }
-
 document.getElementById('targetDate').valueAsDate = new Date();
 fetchData();
 </script>
