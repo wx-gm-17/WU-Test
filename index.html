@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Cannoli Pro v26</title>
+<title>Cannoli Pro v28 (Final Proxy)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 :root { --bg: #060d14; --card: rgba(18, 32, 47, 0.95); --accent: #00d2ff; --border: rgba(255, 255, 255, 0.15); --text: #fff; }
@@ -11,27 +11,23 @@ body { margin:0; background: var(--bg); color: var(--text); font-family: 'Inter'
 header { background: #0b141d; padding: 20px; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
 .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 25px; }
 .card { background: var(--card); padding: 40px 20px; border-radius: 28px; border: 1px solid var(--border); }
-.main-val { font-size: 70px; font-weight: 900; margin: 10px 0; }
-#status { background: #ff4d4d; color: white; padding: 15px; display: none; font-size: 13px; line-height: 1.5; }
-.btn { background: var(--accent); color: #000; border: none; padding: 10px 15px; border-radius: 8px; font-weight: 900; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 10px; }
+.main-val { font-size: 70px; font-weight: 900; margin: 10px 0; color: var(--accent); }
+#status { background: #ff4d4d; color: white; padding: 10px; display: none; font-size: 13px; font-weight: 700; }
+.label { color: #8899a6; font-weight: 900; font-size: 14px; letter-spacing: 1px; }
 </style>
 </head>
 <body>
 
 <header>
-  <div style="font-weight: 900; font-size: 20px;">🐾 CANNOLI v26</div>
+  <div style="font-weight: 900; font-size: 20px;">🐾 CANNOLI v28</div>
   <input type="date" id="targetDate" onchange="fetchData(this.value)" style="background:#14212d; color:white; border:1px solid var(--border); padding:8px; border-radius:10px;">
 </header>
-
-<div id="status">
-    <div id="status-text"></div>
-    <a id="debug-link" class="btn" target="_blank">View Raw Data Link</a>
-</div>
+<div id="status"></div>
 
 <div class="dashboard">
-  <div class="card"><div>TEMP</div><div id="v-temp" class="main-val">--</div></div>
-  <div class="card"><div>WIND</div><div id="v-wind" class="main-val">--</div></div>
-  <div class="card"><div>RAIN</div><div id="v-rain" class="main-val">--</div></div>
+  <div class="card"><div class="label">TEMP</div><div id="v-temp" class="main-val">--</div></div>
+  <div class="card"><div class="label">WIND</div><div id="v-wind" class="main-val">--</div></div>
+  <div class="card"><div class="label">RAIN</div><div id="v-rain" class="main-val">--</div></div>
 </div>
 
 <script>
@@ -39,46 +35,45 @@ const wuKey = "0b649979d0b348b1a49979d0b318b138";
 const stationId = "KCOARVAD722";
 
 async function fetchData(selectedDate) {
-    const statusDiv = document.getElementById('status');
-    const statusText = document.getElementById('status-text');
-    const debugLink = document.getElementById('debug-link');
-    statusDiv.style.display = 'none';
+    const status = document.getElementById('status');
+    status.style.display = 'none';
 
     let d = selectedDate ? new Date(selectedDate + "T12:00:00") : new Date();
     const dateStr = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
 
     const targetUrl = `https://api.weather.com/v2/pws/history/all?stationId=${stationId}&format=json&units=e&date=${dateStr}&apiKey=${wuKey}&numericPrecision=decimal`;
     
-    // Updated Proxy: Using ThingProxy (different infrastructure)
-    const proxyUrl = `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(targetUrl)}`;
-    debugLink.href = targetUrl;
+    // Using 'cors-anywhere' through a different mirror to bypass the IBM block
+    const proxyUrl = `https://cors-anywhere.herokuapp.com/${targetUrl}`;
 
     try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("The proxy server is being blocked by Weather Underground.");
+        // We add a 'X-Requested-With' header which some proxies require
+        const response = await fetch(proxyUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
         
-        const json = await response.json();
-        
-        if (!json.observations) throw new Error("Station found, but no data exists for this date.");
+        if (response.status === 403) {
+            // If the proxy itself requires a "handshake", we show a special message
+            throw new Error("Click the link to 'Request Temporary Access' to the proxy first.");
+        }
 
-        const latest = json.observations[json.observations.length - 1];
-        document.getElementById('v-temp').innerText = Math.round(latest.imperial.tempAvg) + "°";
-        document.getElementById('v-wind').innerText = Math.round(latest.imperial.windspeedAvg);
-        document.getElementById('v-rain').innerText = latest.imperial.precipTotal.toFixed(2);
+        const json = await response.json();
+        const latest = json.observations[json.observations.length - 1].imperial;
+        
+        document.getElementById('v-temp').innerText = Math.round(latest.tempAvg) + "°";
+        document.getElementById('v-wind').innerText = Math.round(latest.windspeedAvg);
+        document.getElementById('v-rain').innerText = latest.precipTotal.toFixed(2);
         
     } catch (e) {
-        statusText.innerHTML = "<b>Connection Blocked:</b> Weather Underground's security is fighting the proxy. <br>Click the button below to see if your API key works directly:";
-        statusDiv.style.display = 'block';
-        console.error("Fetch Error:", e);
+        status.innerHTML = `PROXY BLOCKED: <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" style="color:white">Click Here & Press 'Request Access'</a> then refresh this page.`;
+        status.style.display = 'block';
     }
 }
 
-// Default to yesterday to stay within "Historical" API limits
-const yesterday = new Date();
-yesterday.setDate(yesterday.getDate() - 1);
-const dateInput = yesterday.toISOString().split('T')[0];
-document.getElementById('targetDate').value = dateInput;
-fetchData(dateInput);
+// Initial Load
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('targetDate').value = today;
+fetchData(today);
 </script>
 </body>
 </html>
